@@ -207,7 +207,7 @@ app.use(express.json()); app.post('/send', (req, res, next) => {
      }
    })
  })
-
-app.listen(8000
+var PORT = process.env.PORT || 8000;
+app.listen(PORT
    ,()=>{console.log("App is listening at 8000")}
    );
