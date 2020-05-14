@@ -33,7 +33,7 @@ var pool  = mysql.createPool({
 app.get('/products', function(_req, res){
  
 pool.query('SELECT * FROM product',function(err,results){
-   if (err) throw err;
+   if (err) console.log(err);
    console.log("products have been fetched");
       res.json({data:results}) ;
    })})
