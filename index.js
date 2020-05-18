@@ -25,9 +25,9 @@ var connection = mysql.createConnection({
 });
 var pool  = mysql.createPool({
   connectionLimit : 10,
-  host     : 'localhost',
-  user     : 'root',
-  password : '7899',
+  host     : 'db4free.net',
+  user     : 'anas_esm',
+  password : 'a1069000A',
   database : 'trialusers'
 });
 app.get('/products', function(_req, res){
