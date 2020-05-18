@@ -172,7 +172,7 @@ var transport = {
 
 transporter.verify((error, success) => {
   if (error) {
-    console.log(error);
+    console.error(error);
   } else {
     console.log('All works fine, congratz!');
   }
