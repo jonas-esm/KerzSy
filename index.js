@@ -38,11 +38,12 @@ var pool4  = mysql.createPool({
   database : 'trialusers'
 });
 var pool  = mysql.createPool({
-   connectionLimit : 100,
-   host     : '139.162.141.183',
+   connectionLimit : 50,
+   host     : 'de15.fcomet.com',
    user     : 'kerzstor_anas',
    password : 'a1069000',
-   database : 'kerzstor_prdnu'
+   database : 'kerzstor_prdnu',
+   port:3306
  });
 const objectsQuery = `SELECT  product.product_id,product.product_price , product.barcode, product.product_name , product.categori, product.imgUrl, product.oldPrice,product.newPrice ,
 json_objectagg(stock.size, stock.quantity) AS sizeQty FROM trialusers.stock  join trialusers.product on product.product_id =stock.pid group by product.product_id`
