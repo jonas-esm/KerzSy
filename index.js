@@ -20,7 +20,7 @@ var connection = mysql.createConnection({
   host     : 'localhost',
   user     : 'root',
   password : '7899',
-  database : 'trialusers'
+  database : 'kerzstor_prdnu'
 
 });
 var pool2  = mysql.createPool({
@@ -46,9 +46,9 @@ var pool  = mysql.createPool({
    port:3306
  });
 const objectsQuery = `SELECT  product.product_id,product.product_price , product.barcode, product.product_name , product.categori, product.imgUrl, product.oldPrice,product.newPrice ,
-json_objectagg(stock.size, stock.quantity) AS sizeQty FROM trialusers.stock  join trialusers.product on product.product_id =stock.pid group by product.product_id`
+json_objectagg(stock.size, stock.quantity) AS sizeQty FROM kerzstor_prdnu.stock  join kerzstor_prdnu.product on product.product_id =stock.pid group by product.product_id`
 
-// const valuesQuery = 'SELECT product.product_name, product.product_price, product.imgUrl, stock.pid,product.barcode ,stock.size,stock.quantity FROM trialusers.stock inner join trialusers.product on product.product_id =stock.pid order by(product.product_name)'
+// const valuesQuery = 'SELECT product.product_name, product.product_price, product.imgUrl, stock.pid,product.barcode ,stock.size,stock.quantity FROM kerzstor_prdnu.stock inner join kerzstor_prdnu.product on product.product_id =stock.pid order by(product.product_name)'
 app.get('/test', function(req , res){
 pool.query(objectsQuery , function (err , result) {
   if(err)
@@ -85,11 +85,11 @@ res.send(_parsed)
 }
   })
 })
-const qntSub = `UPDATE trialusers
+const qntSub = `UPDATE kerzstor_prdnu
 SET   stock.quantity = stock.quantity - 1 
 where product.product_id = ? and stock.size = ?; `
-const qntSub2="UPDATE trialusers.stock SET   stock.quantity = stock.quantity - 1 where `stock`.`size-val-id` = ( select `stock`.`size-val-id` where stock.pid = ? and stock.size = ?);"
-const reserveProductQuery = `SELECT stock.pid, product.product_name , stock.size , stock.quantity FROM trialusers.stock join trialusers.product on product_id = stock.pid where product.product_id = ? and stock.size = ?;`
+const qntSub2="UPDATE kerzstor_prdnu.stock SET   stock.quantity = stock.quantity - 1 where `stock`.`size-val-id` = ( select `stock`.`size-val-id` where stock.pid = ? and stock.size = ?);"
+const reserveProductQuery = `SELECT stock.pid, product.product_name , stock.size , stock.quantity FROM kerzstor_prdnu.stock join kerzstor_prdnu.product on product_id = stock.pid where product.product_id = ? and stock.size = ?;`
 app.post('/productReserved', function (req, res) 
 {
  var {productId , quantity , size} = req.body;
