@@ -30,14 +30,14 @@ var pool2  = mysql.createPool({
   password : 'a1069000A',
   database : 'trialusers'
 });
-var pool4  = mysql.createPool({
+var pool  = mysql.createPool({
   connectionLimit : 10,
   host     : 'localhost',
   user     : 'root',
   password : '7899',
-  database : 'trialusers'
+  database : 'kerzstor_prdnu'
 });
-var pool  = mysql.createPool({
+var pool4  = mysql.createPool({
    connectionLimit : 50,
    host     : 'de15.fcomet.com',
    user     : 'kerzstor_anas',
@@ -45,8 +45,10 @@ var pool  = mysql.createPool({
    database : 'kerzstor_prdnu',
    port:3306
  });
-const objectsQuery = `SELECT  product.product_id,product.product_price , product.barcode, product.product_name , product.categori, product.imgUrl, product.oldPrice,product.newPrice ,
-json_objectagg(stock.size, stock.quantity) AS sizeQty FROM kerzstor_prdnu.stock  join kerzstor_prdnu.product on product.product_id =stock.pid group by product.product_id`
+ const objectsQuery = `SELECT  product.product_id,product.product_price , product.barcode, product.product_name , product.categori, product.imgUrl, product.oldPrice,product.newPrice ,
+ json_objectagg(stock.size, stock.quantity) AS sizeQty FROM kerzstor_prdnu.stock  join kerzstor_prdnu.product on product.product_id =stock.pid group by product.product_id`
+ const objectsQuerySearch = `SELECT  product.product_id,product.product_price , product.barcode, product.product_name , product.categori, product.imgUrl, product.oldPrice,product.newPrice ,
+ json_objectagg(stock.size, stock.quantity) AS sizeQty FROM kerzstor_prdnu.stock  join kerzstor_prdnu.product on product.product_id =stock.pid WHERE product.product_name RLIKE ? group by product.product_id `
 
 // const valuesQuery = 'SELECT product.product_name, product.product_price, product.imgUrl, stock.pid,product.barcode ,stock.size,stock.quantity FROM kerzstor_prdnu.stock inner join kerzstor_prdnu.product on product.product_id =stock.pid order by(product.product_name)'
 app.get('/test', function(req , res){
@@ -117,15 +119,41 @@ pool.query('SELECT * FROM product',function(err,results){
    console.log("products have been fetched");
       res.json({data:results}) ;
    })})
-   app.post('/search/', (req, res) => {
-         const geo = req.param('query');  
-         pool.query('SELECT * FROM `product` WHERE `product_name` RLIKE ?',[geo],function(err,results){
-            if(err) return console.error(err);
-            console.log("search done");
-               return res.json({data:results}) ;
-         
-         })
-      });
+app.post('/search/', (req, res) => {
+   const geo = req.query.query;  
+   console.log(req.query.query)
+   // const geo = req.param('query');  
+   pool.query(objectsQuerySearch,[geo],function(err,results){
+      // pool.query('SELECT * FROM `product` WHERE `product_name` RLIKE ?',[geo],function(err,results){
+      if(err) return console.error(err);
+      console.log("search done");
+         // return res.json({data:results}) ;
+         const _parsed = results.map(obj => {
+            const tmp = {}
+           
+            tmp.pID = obj.product_id 
+            tmp.barcode =obj.barcode
+            tmp.productName = obj.product_name 
+            tmp.categori = obj.categori 
+            tmp.imgUrl = obj.imgUrl 
+            tmp.oldPrice = obj.oldPrice 
+            tmp.newPrice = obj.newPrice 
+            tmp.price=obj.product_price
+            let newSizes = []
+            newSizes = JSON.parse(obj.sizeQty)// double-encoded field
+            tmp.sizeQty = newSizes 
+            tmp.sizes  =[]
+            //  tmp.sizeQty= Object.keys(newSizes).map(i => {i: newSizes.i})// double-encoded field
+             for (var i = 0, keys = Object.keys(newSizes); i < keys.length; i++) {
+              // tmp.size=[...tmp.size , Object.assign(newSizes[keys] , {size: keys})]
+              tmp.sizes = [...tmp.sizes,{"size" : keys[i] ,"qty": newSizes[keys[i]]}]
+             }
+                
+            return tmp
+        })
+        res.send({data:_parsed})
+      })
+   });
 
 // connection.connect(err => {if (err) return err;});
 
