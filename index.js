@@ -151,7 +151,7 @@ app.post('/search/', (req, res) => {
                 
             return tmp
         })
-        res.send({data:_parsed})
+        res.send({_parsed})
       })
    });
 
