@@ -30,14 +30,14 @@ var pool2  = mysql.createPool({
   password : 'a1069000A',
   database : 'trialusers'
 });
-var pool  = mysql.createPool({
+var pool3 = mysql.createPool({
   connectionLimit : 10,
   host     : 'localhost',
   user     : 'root',
   password : '7899',
   database : 'kerzstor_prdnu'
 });
-var pool4  = mysql.createPool({
+var pool  = mysql.createPool({
    connectionLimit : 50,
    host     : 'de15.fcomet.com',
    user     : 'kerzstor_anas',
