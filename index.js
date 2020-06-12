@@ -30,14 +30,14 @@ var pool2  = mysql.createPool({
   password : 'a1069000A',
   database : 'trialusers'
 });
-var pool3 = mysql.createPool({
+var pool = mysql.createPool({
   connectionLimit : 10,
   host     : 'localhost',
   user     : 'root',
   password : '7899',
   database : 'kerzstor_prdnu'
 });
-var pool  = mysql.createPool({
+var pool7  = mysql.createPool({
    connectionLimit : 50,
    host     : 'de15.fcomet.com',
    user     : 'kerzstor_anas',
@@ -109,6 +109,10 @@ console.log(req.body)
 // res.json({data:result})
   
 });
+// INSERT INTO `table` (`value1`, `value2`) 
+// SELECT 'stuff for value1', 'stuff for value2' FROM DUAL 
+// WHERE NOT EXISTS (SELECT * FROM `table` 
+//       WHERE `value1`='stuff for value1' AND `value2`='stuff for value2' LIMIT 1) 
 app.get('/products', function(_req, res){
  
 pool.query('SELECT * FROM product',function(err,results){
@@ -119,6 +123,7 @@ pool.query('SELECT * FROM product',function(err,results){
    console.log("products have been fetched");
       res.json({data:results}) ;
    })})
+   
 app.post('/search/', (req, res) => {
    const geo = req.query.query;  
    console.log(req.query.query)
@@ -154,6 +159,123 @@ app.post('/search/', (req, res) => {
         res.send({_parsed})
       })
    });
+app.post('/addPrd/', (req, res) => {
+   // const {pID , pName , categori , imgUrl, oldPrice, price , sizeQty} = req.body
+  const {product_id,
+product_name,
+imgUrl2,
+barcode,
+imgUrl,
+oldPrice,
+product_price,
+sizeQty,} = req.body
+   console.log(` body object : ${req.body} ` )
+   
+      const arr = sizeQty.map(item => {
+         const tmp = {}
+         // tmp.value_id=item.id 
+         tmp.product_id = product_id
+          tmp.size= item.size 
+          tmp.qty = item.qty
+         //  tmp.product_name = product_name
+         //  tmp.imgUrl2 = imgUrl2
+         //  tmp.barcode = barcode
+         //  tmp.imgUrl = imgUrl
+         //  tmp.oldPrice = oldPrice
+         //  tmp.product_price = product_price
+         //  tmp.sizeQt = sizeQt
+          return tmp
+      })
+      const prdQuery = "INSERT INTO `kerzstor_prdnu`.`product` (`product_id`, `product_name`, `product_price`, `categori`, `imgUrl`,`imgUrl2`, `barcode`, `oldPrice`) VALUES ?"
+      const prdValues = [[product_id,product_name,product_price,"" ,imgUrl,imgUrl2,barcode,oldPrice]]
+      const stockValues =arr.map(item =>  Object.values(item))
+      
+      pool.getConnection(function(err, connection) {
+         if (err)  console.log(err); // not connected!
+         const allResults = {sizesQuery:{},prdQuery:{}}
+         // Use the connection
+         // connection.query('SELECT something FROM sometable', function (error, results, fields) {
+            connection.query(prdQuery , [prdValues], function (err, results) {
+                  if(err)
+                  { console.log(err)
+                  return res.status(500).send({error: err, message: err.message})
+                  }
+                  console.log(results)
+               // res.json({message: 'error' , error:err})
+            
+            if(results){
+              allResults.prdQuery = results;
+              
+            // })
+            connection.query("INSERT INTO `kerzstor_prdnu`.`stock` (`pid`, `size`, `quantity`) VALUES ?" , [stockValues] , function (err , results) {
+            
+              if (err) {
+                 console.log(err)
+               //   res.status(500).json({message: err})
+               return res.status(400).send({error: err, message: err.message})
+
+
+               // res.json({message: 'error' , error:err})
+                  
+               } 
+               //   console.log(results)
+               // console.log(results)
+
+               allResults.sizesQuery = results
+              console.log(allResults)
+               res.status(200).json({message: 'successfull process' , allResults})
+              
+            })
+         //  res.json({data:allResults})
+
+
+           connection.release(err);
+       
+           // Handle error after the release.
+           if (err) console.log(err) ;
+       
+           // Don't use the connection here, it has been returned to the pool.
+            }}) ;
+         // console.log(prdValues , stockValues)
+       });
+      // pool.query("INSERT INTO `kerzstor_prdnu`.`stock` (`pid`, `size`, `quantity`) VALUES ?" , [stockValues] , function (err , results) {
+      //    if(err) console.log(err)
+      //    console.log(results)
+         
+      })
+     
+
+   //////////////////////////////
+   ///////NEXT MESSION///////////
+   //////////////////////////////
+//    router.get('/api/url/', function (req, res) {
+//       var pool = mysql.createPool(credentials);
+//       var query1 = "SELECT column1 FROM table1 WHERE column2 = 'foo'";
+//       var query2 = "SELECT column1 FROM table2 WHERE column2 = 'bar'";
+  
+//       var return_data = {};
+  
+//       async.parallel([
+//          function(parallel_done) {
+//              pool.query(query1, {}, function(err, results) {
+//                  if (err) return parallel_done(err);
+//                  return_data.table1 = results;
+//                  parallel_done();
+//              });
+//          },
+//          function(parallel_done) {
+//              pool.query(query2, {}, function(err, results) {
+//                  if (err) return parallel_done(err);
+//                  return_data.table2 = results;
+//                  parallel_done();
+//              });
+//          }
+//       ], function(err) {
+//            if (err) console.log(err);
+//            pool.end();
+//            res.send(return_data);
+//       });
+//   });
 
 // connection.connect(err => {if (err) return err;});
 
