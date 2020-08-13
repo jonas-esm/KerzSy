@@ -19,6 +19,24 @@ app.use( bodyParser.urlencoded( {
 app.use( bodyParser.json() );
 
 app.use(cors())
+app.use(function (req, res, next) {
+
+   // Website you wish to allow to connect
+   res.setHeader('Access-Control-Allow-Origin', 'https://kerzstore.com/');
+
+   // Request methods you wish to allow
+   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+
+   // Request headers you wish to allow
+   res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type' );
+
+   // Set to true if you need the website to include cookies in the requests sent
+   // to the API (e.g. in case you use sessions)
+   res.setHeader('Access-Control-Allow-Credentials', true);
+
+   // Pass to next layer of middleware
+   next();
+});
 var connection = mysql.createConnection(allConfig.connectionConf);
 // const storage = multer.diskStorage({destination:'uploads/' , filename: function(req , file , cb){
 //    cb(null , "IMAGE-"+new Date().toISOString().slice(0,19) +path. file.originalname);
@@ -33,8 +51,8 @@ var storage = multer.diskStorage({
 })
 const upload = multer({storage:storage , limits : {fileSize:1000000}}).single('myImage')
 
-var pool = mysql.createPool(allConfig.localPool);
-var pool7  = mysql.createPool(allConfig.remotePool);
+var pool4 = mysql.createPool(allConfig.localPool);
+var pool  = mysql.createPool(allConfig.remotePool);
  const objectsQuery = `SELECT  product.product_id,product.product_price , product.barcode, product.product_name , product.categori, product.imgUrl, product.oldPrice,product.newPrice ,
  json_objectagg(stock.size, stock.quantity) AS sizeQty FROM kerzstor_prdnu.stock  join kerzstor_prdnu.product on product.product_id =stock.pid group by product.product_id`
  const objectsQuerySearch = `SELECT  product.product_id,product.product_price , product.barcode, product.product_name , product.categori, product.imgUrl, product.oldPrice,product.newPrice ,
