@@ -7,8 +7,11 @@ const fs = require('fs');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
-const creds = require('./config');
-
+const allConfig = require('./config');
+const path = require('path')
+const multer = require('multer')
+const creds = allConfig.creds
+app.use('/uploads',express.static('uploads/'))
 app.use( bodyParser.urlencoded( {
    extended: true
 } ) );
@@ -16,35 +19,22 @@ app.use( bodyParser.urlencoded( {
 app.use( bodyParser.json() );
 
 app.use(cors())
-var connection = mysql.createConnection({
-  host     : 'localhost',
-  user     : 'root',
-  password : '7899',
-  database : 'kerzstor_prdnu'
+var connection = mysql.createConnection(allConfig.connectionConf);
+// const storage = multer.diskStorage({destination:'uploads/' , filename: function(req , file , cb){
+//    cb(null , "IMAGE-"+new Date().toISOString().slice(0,19) +path. file.originalname);
+// }})
+var storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/')
+  },
+  filename: function (req, file, cb) {
+    cb(null,  Date.now() +'-'+file.originalname )
+  }
+})
+const upload = multer({storage:storage , limits : {fileSize:1000000}}).single('myImage')
 
-});
-var pool2  = mysql.createPool({
-  connectionLimit : 10,
-  host     : 'db4free.net',
-  user     : 'anas_esm',
-  password : 'a1069000A',
-  database : 'trialusers'
-});
-var pool7 = mysql.createPool({
-  connectionLimit : 10,
-  host     : 'localhost',
-  user     : 'root',
-  password : '7899',
-  database : 'kerzstor_prdnu'
-});
-var pool  = mysql.createPool({
-   connectionLimit : 50,
-   host     : 'de15.fcomet.com',
-   user     : 'kerzstor_anas',
-   password : 'a1069000',
-   database : 'kerzstor_prdnu',
-   port:3306
- });
+var pool = mysql.createPool(allConfig.localPool);
+var pool7  = mysql.createPool(allConfig.remotePool);
  const objectsQuery = `SELECT  product.product_id,product.product_price , product.barcode, product.product_name , product.categori, product.imgUrl, product.oldPrice,product.newPrice ,
  json_objectagg(stock.size, stock.quantity) AS sizeQty FROM kerzstor_prdnu.stock  join kerzstor_prdnu.product on product.product_id =stock.pid group by product.product_id`
  const objectsQuerySearch = `SELECT  product.product_id,product.product_price , product.barcode, product.product_name , product.categori, product.imgUrl, product.oldPrice,product.newPrice ,
@@ -140,7 +130,8 @@ app.post('/search/', (req, res) => {
             tmp.barcode =obj.barcode
             tmp.productName = obj.product_name 
             tmp.categori = obj.categori 
-            tmp.imgUrl = obj.imgUrl 
+            tmp.imgUrl = req.file.path
+            // tmp.imgUrl = obj.imgUrl 
             tmp.oldPrice = obj.oldPrice 
             tmp.newPrice = obj.newPrice 
             tmp.price=obj.product_price
@@ -159,7 +150,8 @@ app.post('/search/', (req, res) => {
         res.send({_parsed})
       })
    });
-app.post('/addPrd/', (req, res) => {
+   
+app.post('/addPrd2/', (req, res) => {
    // const {pID , pName , categori , imgUrl, oldPrice, price , sizeQty} = req.body
   const {product_id,
 product_name,
@@ -244,6 +236,92 @@ sizeQty,} = req.body
          
       })
      
+app.post('/addPrd' ,upload , function (req, res, next) {
+console.log(req.file)
+ // const {pID , pName , categori , imgUrl, oldPrice, price , sizeQty} = req.body
+ if(!req.body.info) return res.status(500).send('noinfo')
+  const {product_id,
+product_name,
+imgUrl2,
+barcode,
+imgUrl,
+oldPrice,
+product_price,
+sizeQty,} = JSON.parse( req.body.info)
+   // console.log(` body object : ${req.body} ` )
+   
+      const arr = sizeQty.map(item => {
+         const tmp = {}
+         // tmp.value_id=item.id 
+         tmp.product_id = product_id
+          tmp.size= item.size 
+          tmp.qty = item.qty
+         //  tmp.product_name = product_name
+         //  tmp.imgUrl2 = imgUrl2
+         //  tmp.barcode = barcode
+         //  tmp.imgUrl = imgUrl
+         //  tmp.oldPrice = oldPrice
+         //  tmp.product_price = product_price
+         //  tmp.sizeQt = sizeQt
+          return tmp
+      })
+      const prdQuery = "INSERT INTO `kerzstor_prdnu`.`product` (`product_id`, `product_name`, `product_price`, `categori`, `imgUrl`,`imgUrl2`, `barcode`, `oldPrice`) VALUES ?"
+      const prdValues = [[product_id,product_name,product_price,"" ,req.file.path,imgUrl2,barcode,oldPrice]]
+      const stockValues =arr.map(item =>  Object.values(item))
+      
+      pool.getConnection(function(err, connection) {
+         if (err)  console.log(err); // not connected!
+         const allResults = {sizesQuery:{},prdQuery:{}}
+         // Use the connection
+         // connection.query('SELECT something FROM sometable', function (error, results, fields) {
+            connection.query(prdQuery , [prdValues], function (err, results) {
+                  if(err)
+                  { console.log(err)
+                  return res.status(500).send({error: err, message: err.message})
+                  }
+                  console.log(results)
+               // res.json({message: 'error' , error:err})
+            
+            if(results){
+              allResults.prdQuery = results;
+              
+            // })
+            connection.query("INSERT INTO `kerzstor_prdnu`.`stock` (`pid`, `size`, `quantity`) VALUES ?" , [stockValues] , function (err , results) {
+            
+              if (err) {
+                 console.log(err)
+               //   res.status(500).json({message: err})
+               return res.status(400).send({error: err, message: err.message})
+
+
+               // res.json({message: 'error' , error:err})
+                  
+               } 
+               //   console.log(results)
+               // console.log(results)
+
+               allResults.sizesQuery = results
+              console.log(allResults)
+               res.status(200).json({message: 'successfull process' , allResults})
+              
+            })
+         //  res.json({data:allResults})
+
+
+           connection.release(err);
+       
+           // Handle error after the release.
+           if (err) console.log(err) ;
+       
+           // Don't use the connection here, it has been returned to the pool.
+            }}) ;
+         // console.log(prdValues , stockValues)
+       });
+      // pool.query("INSERT INTO `kerzstor_prdnu`.`stock` (`pid`, `size`, `quantity`) VALUES ?" , [stockValues] , function (err , results) {
+      //    if(err) console.log(err)
+      //    console.log(results)
+         
+      })
 
    //////////////////////////////
    ///////NEXT MESSION///////////
