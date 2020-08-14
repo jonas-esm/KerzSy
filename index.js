@@ -11,6 +11,7 @@ const allConfig = require('./config');
 const path = require('path')
 const multer = require('multer')
 const creds = allConfig.creds
+const models = require('./models/models.js')
 app.use('/uploads',express.static('uploads/'))
 app.use( bodyParser.urlencoded( {
    extended: true
@@ -40,7 +41,7 @@ app.use(function (req, res, next) {
 app.use(function (req, res, next) {
 
    // Website you wish to allow to connect
-   res.setHeader('Access-Control-Allow-Origin', 'https://kerzstore.com/');
+   res.setHeader('Access-Control-Allow-Origin', '*');
 
    // Request methods you wish to allow
    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
@@ -69,7 +70,24 @@ var storage = multer.diskStorage({
 })
 const upload = multer({storage:storage , limits : {fileSize:1000000}}).single('myImage')
 
-var pool4 = mysql.createPool(allConfig.localPool);
+app.get('/getstock' , function(req , res){
+   models.getStock(req, res , pool)
+})
+app.put('/updateqnt' , function(req , res){
+   models.updateQnt(req, res , pool)
+})
+app.post('/editprd' , function(req , res){
+   models.updatePrdInfo(req , res , pool)
+})
+app.post('/newsize' , function (req ,res) {
+   models.newSize(req , res , pool)
+})
+app.post('/deleteproduct' , function (req , res) {
+   models.deleteProduct(req , res , pool)
+})
+
+
+// var pool = mysql.createPool(allConfig.localPool);
 var pool  = mysql.createPool(allConfig.remotePool);
  const objectsQuery = `SELECT  product.product_id,product.product_price , product.barcode, product.product_name , product.categori, product.imgUrl, product.oldPrice,product.newPrice ,
  json_objectagg(stock.size, stock.quantity) AS sizeQty FROM kerzstor_prdnu.stock  join kerzstor_prdnu.product on product.product_id =stock.pid group by product.product_id`
@@ -78,6 +96,7 @@ var pool  = mysql.createPool(allConfig.remotePool);
 
 // const valuesQuery = 'SELECT product.product_name, product.product_price, product.imgUrl, stock.pid,product.barcode ,stock.size,stock.quantity FROM kerzstor_prdnu.stock inner join kerzstor_prdnu.product on product.product_id =stock.pid order by(product.product_name)'
 app.get('/test', function(req , res){
+   
 pool.query(objectsQuery , function (err , result) {
   if(err)
   // throw err
@@ -139,6 +158,7 @@ console.log(req.body)
 // SELECT 'stuff for value1', 'stuff for value2' FROM DUAL 
 // WHERE NOT EXISTS (SELECT * FROM `table` 
 //       WHERE `value1`='stuff for value1' AND `value2`='stuff for value2' LIMIT 1) 
+
 app.get('/products', function(_req, res){
  
 pool.query('SELECT * FROM product',function(err,results){
@@ -235,6 +255,7 @@ sizeQty,} = req.body
               allResults.prdQuery = results;
               
             // })
+
             connection.query("INSERT INTO `kerzstor_prdnu`.`stock` (`pid`, `size`, `quantity`) VALUES ?" , [stockValues] , function (err , results) {
             
               if (err) {
